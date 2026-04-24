@@ -6,6 +6,7 @@ export type Profile = {
   managed_by: string | null;
   avatar_url: string | null;
   bootstrap_plate: number;
+  is_admin: boolean;
   created_at: string;
 };
 

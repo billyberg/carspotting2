@@ -56,7 +56,16 @@ export default async function ManagePage() {
           ← Tillbaka
         </Link>
         <h1 className="text-xl font-semibold tracking-tight">Hantera</h1>
-        <div className="w-24" />
+        {ownProfile.is_admin ? (
+          <Link
+            href="/admin"
+            className="text-sm rounded-full bg-white text-black px-4 py-2 hover:opacity-90 transition-opacity"
+          >
+            Admin
+          </Link>
+        ) : (
+          <div className="w-24" />
+        )}
       </header>
 
       <section className="rounded-3xl bg-[var(--card)] border border-[var(--card-border)] p-5 space-y-4">

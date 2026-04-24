@@ -37,6 +37,9 @@ export default async function ManagePage() {
     : { data: [] as { profile_id: string; plate_number: number }[] };
 
   const highestByProfile = new Map<string, number>();
+  for (const f of fakes ?? []) {
+    highestByProfile.set(f.id, f.bootstrap_plate ?? 0);
+  }
   for (const f of fakeFinds ?? []) {
     const current = highestByProfile.get(f.profile_id) ?? 0;
     if (f.plate_number > current)

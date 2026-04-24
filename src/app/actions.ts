@@ -78,6 +78,15 @@ export async function deleteFakeProfile(formData: FormData): Promise<void> {
   refresh();
 }
 
+export async function claimImport(): Promise<void> {
+  const { supabase } = await requireUser();
+  const { error } = await supabase.rpc("claim_import", {
+    p_display_name: null,
+  });
+  if (error) throw new Error(error.message);
+  redirect("/");
+}
+
 export async function signOut(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
@@ -130,15 +139,23 @@ export async function registerFind(
     if (!managed) return { ok: false, error: "Du äger inte den profilen" };
   }
 
-  const { data: last } = await supabase
-    .from("finds")
-    .select("plate_number")
-    .eq("profile_id", profileId)
-    .order("plate_number", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const [{ data: last }, { data: target }] = await Promise.all([
+    supabase
+      .from("finds")
+      .select("plate_number")
+      .eq("profile_id", profileId)
+      .order("plate_number", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("bootstrap_plate")
+      .eq("id", profileId)
+      .maybeSingle(),
+  ]);
 
-  const next = (last?.plate_number ?? 0) + 1;
+  const base = Math.max(last?.plate_number ?? 0, target?.bootstrap_plate ?? 0);
+  const next = base + 1;
 
   const { error } = await supabase.from("finds").insert({
     profile_id: profileId,

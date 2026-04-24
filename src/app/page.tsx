@@ -37,6 +37,9 @@ export default async function HomePage() {
     .in("profile_id", profileIds);
 
   const highestByProfile = new Map<string, number>();
+  for (const p of myProfiles) {
+    highestByProfile.set(p.id, p.bootstrap_plate ?? 0);
+  }
   for (const f of latestFinds ?? []) {
     const current = highestByProfile.get(f.profile_id) ?? 0;
     if (f.plate_number > current)

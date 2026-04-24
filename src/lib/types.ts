@@ -5,7 +5,14 @@ export type Profile = {
   is_fake: boolean;
   managed_by: string | null;
   avatar_url: string | null;
+  bootstrap_plate: number;
   created_at: string;
+};
+
+export type PendingImport = {
+  email: string;
+  display_name: string;
+  bootstrap_plate: number;
 };
 
 export type Find = {

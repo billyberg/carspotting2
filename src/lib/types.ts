@@ -4,6 +4,7 @@ export type Profile = {
   display_name: string;
   is_fake: boolean;
   managed_by: string | null;
+  avatar_url: string | null;
   created_at: string;
 };
 
@@ -17,6 +18,7 @@ export type Find = {
 export type LeaderboardRow = {
   id: string;
   display_name: string;
+  avatar_url: string | null;
   highest_plate: number;
   total_finds: number;
   last_find_at: string | null;

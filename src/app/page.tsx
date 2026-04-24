@@ -5,6 +5,7 @@ import { formatPlate } from "@/lib/plate";
 import type { LeaderboardRow, Profile } from "@/lib/types";
 import { FindCard } from "./find-card";
 import { SignOutButton } from "./sign-out";
+import { Avatar } from "./avatar";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -91,17 +92,22 @@ export default async function HomePage() {
                     : "bg-black/40 border border-[var(--card-border)]"
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <span
-                    className={`w-6 text-sm tabular-nums ${
+                    className={`w-6 text-sm tabular-nums shrink-0 ${
                       isMine ? "opacity-60" : "text-muted"
                     }`}
                   >
                     {i + 1}
                   </span>
-                  <span className="font-medium">{row.display_name}</span>
+                  <Avatar
+                    url={row.avatar_url}
+                    name={row.display_name}
+                    size={36}
+                  />
+                  <span className="font-medium truncate">{row.display_name}</span>
                 </div>
-                <span className="font-mono tabular-nums text-lg">
+                <span className="font-mono tabular-nums text-lg shrink-0 pl-2">
                   {formatPlate(row.highest_plate)}
                 </span>
               </li>

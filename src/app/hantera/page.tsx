@@ -3,10 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
 import { formatPlate } from "@/lib/plate";
-import {
-  createFakeProfile,
-  deleteFakeProfile,
-} from "@/app/actions";
+import { AvatarUpload } from "@/app/avatar-upload";
+import { createFakeProfile, deleteFakeProfile } from "@/app/actions";
 
 export default async function ManagePage() {
   const supabase = await createClient();
@@ -59,6 +57,24 @@ export default async function ManagePage() {
       </header>
 
       <section className="rounded-3xl bg-[var(--card)] border border-[var(--card-border)] p-5 space-y-4">
+        <h2 className="text-sm uppercase tracking-widest text-muted">
+          Din profil
+        </h2>
+        <div className="flex items-center gap-4">
+          <AvatarUpload
+            profileId={ownProfile.id}
+            name={ownProfile.display_name}
+            avatarUrl={ownProfile.avatar_url}
+            size={64}
+          />
+          <div className="flex-1 min-w-0">
+            <div className="font-medium truncate">{ownProfile.display_name}</div>
+            <div className="text-xs text-muted">Klicka på bilden för att byta</div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-3xl bg-[var(--card)] border border-[var(--card-border)] p-5 space-y-4">
         <div>
           <h2 className="text-sm uppercase tracking-widest text-muted">
             Lägg till spelare
@@ -89,25 +105,35 @@ export default async function ManagePage() {
         <h2 className="text-sm uppercase tracking-widest text-muted mb-4">
           Dina hanterade spelare
         </h2>
-        <ul className="space-y-2">
+        <ul className="space-y-3">
           {(fakes ?? []).map((f) => {
             const highest = highestByProfile.get(f.id) ?? 0;
             return (
               <li
                 key={f.id}
-                className="flex items-center justify-between rounded-2xl bg-black/40 border border-[var(--card-border)] px-4 py-3"
+                className="flex items-center justify-between gap-3 rounded-2xl bg-black/40 border border-[var(--card-border)] px-4 py-3"
               >
-                <div className="flex items-center gap-3">
-                  <span className="font-medium">{f.display_name}</span>
-                  <span className="font-mono tabular-nums text-sm text-muted">
-                    {highest > 0 ? formatPlate(highest) : "—"}
-                  </span>
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <AvatarUpload
+                    profileId={f.id}
+                    name={f.display_name}
+                    avatarUrl={f.avatar_url}
+                    size={44}
+                  />
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-medium truncate">
+                      {f.display_name}
+                    </span>
+                    <span className="font-mono tabular-nums text-xs text-muted">
+                      {highest > 0 ? formatPlate(highest) : "—"}
+                    </span>
+                  </div>
                 </div>
                 <form action={deleteFakeProfile}>
                   <input type="hidden" name="id" value={f.id} />
                   <button
                     type="submit"
-                    className="text-xs text-muted hover:text-red-400 transition-colors"
+                    className="text-xs text-muted hover:text-red-400 transition-colors shrink-0"
                   >
                     Ta bort
                   </button>

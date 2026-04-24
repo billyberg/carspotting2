@@ -84,6 +84,33 @@ export async function signOut(): Promise<void> {
   redirect("/login");
 }
 
+export async function updateAvatarUrl(
+  profileId: string,
+  avatarUrl: string | null,
+): Promise<ActionResult> {
+  const { supabase, profile } = await requireOwnProfile();
+
+  const isOwn = profileId === profile.id;
+  if (!isOwn) {
+    const { data: managed } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", profileId)
+      .eq("managed_by", profile.id)
+      .maybeSingle();
+    if (!managed) return { ok: false, error: "Du äger inte den profilen" };
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ avatar_url: avatarUrl })
+    .eq("id", profileId);
+  if (error) return { ok: false, error: error.message };
+
+  refresh();
+  return { ok: true };
+}
+
 // ---- Async actions with return value (called via onClick/useTransition) ----
 
 type ActionResult = { ok: true } | { ok: false; error: string };

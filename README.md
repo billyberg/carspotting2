@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Carspotting
 
-## Getting Started
+Minimalistisk webapp för att jaga registreringsplåtar i följd (001, 002, 003…) tillsammans med kompisar. Invite-only, med stöd för att hantera en "fake"-användare (t.ex. en förälder) vid sidan av ditt eget konto.
 
-First, run the development server:
+## Setup (första gången — ca 15 min)
+
+### 1. Supabase (databas + inloggning)
+
+1. Gå till [supabase.com](https://supabase.com) → **Start your project** (logga in med GitHub)
+2. **New project**
+   - Name: `carspotting`
+   - Database password: välj något och spara det (behövs inte senare)
+   - Region: välj närmaste (Stockholm / Frankfurt)
+   - Klicka **Create new project** — tar ~2 min
+3. När projektet är klart: öppna **SQL Editor** i vänstermenyn
+   - Klicka **New query**
+   - Öppna filen `supabase/schema.sql` i det här repot och klistra in hela innehållet
+   - Klicka **Run** (eller ⌘/Ctrl+Enter)
+4. Stäng av öppen registrering:
+   - **Authentication → Providers → Email**
+   - Slå AV **Enable Signup** (viktigt! Annars kan vem som helst registrera sig)
+   - Slå PÅ **Magic Link**
+   - Spara
+5. Hämta dina API-nycklar:
+   - **Project Settings → API**
+   - Kopiera **Project URL** och **anon public**-nyckeln
+
+### 2. Kör lokalt (valfritt, men bra för att testa)
 
 ```bash
+cd carspotting
+cp .env.local.example .env.local
+# Öppna .env.local och klistra in dina Supabase-värden
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Öppna http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Bjud in första användaren (dig själv)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. I Supabase: **Authentication → Users → Invite user**
+2. Ange din e-post → **Send invitation**
+3. Kolla mailen, klicka på länken — du landar i appen och får välja visningsnamn
 
-## Learn More
+### 4. Deploya till Vercel (produktion)
 
-To learn more about Next.js, take a look at the following resources:
+1. Pusha koden till GitHub (skapa ett repo och `git push`)
+2. Gå till [vercel.com](https://vercel.com) → **Add New Project** → importera ditt GitHub-repo
+3. I **Environment Variables**, lägg till:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+4. Klicka **Deploy**
+5. Gå tillbaka till Supabase → **Authentication → URL Configuration**
+   - Sätt **Site URL** till din Vercel-domän (t.ex. `https://carspotting.vercel.app`)
+   - Lägg till samma URL i **Redirect URLs**
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 5. Bjud in kompisar
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Supabase → **Authentication → Users → Invite user** → ange deras e-post.
 
-## Deploy on Vercel
+## Funktioner
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Hem**: visar ditt senaste fynd (+ ev. fake-spelare du hanterar) och en stor knapp för att registrera nästa nummer i sekvens.
+- **Topplista**: alla spelare sorterade efter högsta fynd. Ditt konto markeras vitt.
+- **Hantera**: skapa/ta bort fake-spelare som du registrerar fynd åt.
+- **Ångra**: ta bort senaste fyndet om du råkat klicka fel.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Regler (enforced i databasen)
+
+- Du måste hitta nummer N innan du kan registrera N+1.
+- Bara senaste fyndet kan ångras.
+- Bara du (och admin via Supabase-panelen) kan se/ändra dina fake-spelare.
+- Fake-spelare ser ut som riktiga för andra på topplistan.
+
+## Tech
+
+- Next.js 16 (App Router, Turbopack)
+- Supabase (Postgres + Auth)
+- Tailwind CSS 4
+- Deployas på Vercel

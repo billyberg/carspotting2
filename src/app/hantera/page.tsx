@@ -1,0 +1,127 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import type { Profile } from "@/lib/types";
+import { formatPlate } from "@/lib/plate";
+import {
+  createFakeProfile,
+  deleteFakeProfile,
+} from "@/app/actions";
+
+export default async function ManagePage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: ownProfile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle<Profile>();
+  if (!ownProfile) redirect("/onboarding");
+
+  const { data: fakes } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("managed_by", ownProfile.id)
+    .order("created_at", { ascending: true })
+    .returns<Profile[]>();
+
+  const fakeIds = (fakes ?? []).map((f) => f.id);
+
+  const { data: fakeFinds } = fakeIds.length
+    ? await supabase
+        .from("finds")
+        .select("profile_id, plate_number")
+        .in("profile_id", fakeIds)
+    : { data: [] as { profile_id: string; plate_number: number }[] };
+
+  const highestByProfile = new Map<string, number>();
+  for (const f of fakeFinds ?? []) {
+    const current = highestByProfile.get(f.profile_id) ?? 0;
+    if (f.plate_number > current)
+      highestByProfile.set(f.profile_id, f.plate_number);
+  }
+
+  return (
+    <main className="min-h-screen flex flex-col p-4 sm:p-6 gap-4 sm:gap-6 max-w-2xl w-full mx-auto">
+      <header className="flex items-center justify-between px-2 pt-2">
+        <Link
+          href="/"
+          className="text-sm rounded-full border border-[var(--card-border)] px-4 py-2 hover:border-white/40 transition-colors"
+        >
+          ← Tillbaka
+        </Link>
+        <h1 className="text-xl font-semibold tracking-tight">Hantera</h1>
+        <div className="w-24" />
+      </header>
+
+      <section className="rounded-3xl bg-[var(--card)] border border-[var(--card-border)] p-5 space-y-4">
+        <div>
+          <h2 className="text-sm uppercase tracking-widest text-muted">
+            Lägg till spelare
+          </h2>
+          <p className="text-xs text-muted mt-1">
+            Skapa ett konto du registrerar fynd åt (t.ex. en familjemedlem).
+          </p>
+        </div>
+        <form action={createFakeProfile} className="flex gap-2">
+          <input
+            type="text"
+            name="display_name"
+            required
+            maxLength={40}
+            placeholder="Namn"
+            className="flex-1 rounded-2xl bg-black border border-[var(--card-border)] px-4 py-3 text-base placeholder:text-muted focus:outline-none focus:border-white/40"
+          />
+          <button
+            type="submit"
+            className="rounded-2xl bg-white text-black font-medium px-5 py-3 hover:opacity-90 transition-opacity"
+          >
+            Lägg till
+          </button>
+        </form>
+      </section>
+
+      <section className="rounded-3xl bg-[var(--card)] border border-[var(--card-border)] p-5">
+        <h2 className="text-sm uppercase tracking-widest text-muted mb-4">
+          Dina hanterade spelare
+        </h2>
+        <ul className="space-y-2">
+          {(fakes ?? []).map((f) => {
+            const highest = highestByProfile.get(f.id) ?? 0;
+            return (
+              <li
+                key={f.id}
+                className="flex items-center justify-between rounded-2xl bg-black/40 border border-[var(--card-border)] px-4 py-3"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="font-medium">{f.display_name}</span>
+                  <span className="font-mono tabular-nums text-sm text-muted">
+                    {highest > 0 ? formatPlate(highest) : "—"}
+                  </span>
+                </div>
+                <form action={deleteFakeProfile}>
+                  <input type="hidden" name="id" value={f.id} />
+                  <button
+                    type="submit"
+                    className="text-xs text-muted hover:text-red-400 transition-colors"
+                  >
+                    Ta bort
+                  </button>
+                </form>
+              </li>
+            );
+          })}
+          {(fakes ?? []).length === 0 && (
+            <li className="text-sm text-muted text-center py-6">
+              Du hanterar inga andra spelare än.
+            </li>
+          )}
+        </ul>
+      </section>
+    </main>
+  );
+}

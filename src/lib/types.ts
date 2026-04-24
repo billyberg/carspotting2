@@ -13,6 +13,7 @@ export type PendingImport = {
   email: string;
   display_name: string;
   bootstrap_plate: number;
+  avatar_url: string | null;
 };
 
 export type Find = {

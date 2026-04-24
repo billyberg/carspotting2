@@ -49,8 +49,11 @@ create table if not exists pending_imports (
   email text primary key,
   display_name text not null,
   bootstrap_plate int not null default 0 check (bootstrap_plate >= 0),
+  avatar_url text,
   created_at timestamptz not null default now()
 );
+
+alter table pending_imports add column if not exists avatar_url text;
 
 alter table pending_imports enable row level security;
 
@@ -96,17 +99,18 @@ begin
   if found then
     v_name := coalesce(nullif(trim(p_display_name), ''), v_import.display_name);
     v_boot := v_import.bootstrap_plate;
+    insert into profiles (user_id, display_name, bootstrap_plate, avatar_url, is_fake)
+    values (v_uid, v_name, v_boot, v_import.avatar_url, false)
+    returning * into v_profile;
   else
     v_name := nullif(trim(p_display_name), '');
     if v_name is null then
       raise exception 'Ange ett namn';
     end if;
-    v_boot := 0;
+    insert into profiles (user_id, display_name, bootstrap_plate, is_fake)
+    values (v_uid, v_name, 0, false)
+    returning * into v_profile;
   end if;
-
-  insert into profiles (user_id, display_name, bootstrap_plate, is_fake)
-  values (v_uid, v_name, v_boot, false)
-  returning * into v_profile;
 
   delete from pending_imports where lower(email) = v_email;
 

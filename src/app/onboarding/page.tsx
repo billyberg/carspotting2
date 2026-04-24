@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { claimImport, createOwnProfile } from "@/app/actions";
 import { formatPlate } from "@/lib/plate";
 import type { PendingImport } from "@/lib/types";
+import { Avatar } from "@/app/avatar";
 
 export default async function OnboardingPage() {
   const supabase = await createClient();
@@ -20,7 +21,7 @@ export default async function OnboardingPage() {
 
   const { data: pending } = await supabase
     .from("pending_imports")
-    .select("email, display_name, bootstrap_plate")
+    .select("email, display_name, bootstrap_plate, avatar_url")
     .maybeSingle<PendingImport>();
 
   if (pending) {
@@ -35,12 +36,14 @@ export default async function OnboardingPage() {
               Vi hittade dig i listan från gamla appen.
             </p>
           </div>
-          <div className="rounded-3xl bg-[var(--card)] border border-[var(--card-border)] p-6 space-y-2 text-center">
-            <div className="text-xs uppercase tracking-widest text-muted">
-              Du fortsätter som
-            </div>
-            <div className="text-2xl font-semibold">{pending.display_name}</div>
-            <div className="text-xs uppercase tracking-widest text-muted pt-4">
+          <div className="rounded-3xl bg-[var(--card)] border border-[var(--card-border)] p-6 flex flex-col items-center gap-3">
+            <Avatar
+              url={pending.avatar_url}
+              name={pending.display_name}
+              size={80}
+            />
+            <div className="text-xl font-semibold">{pending.display_name}</div>
+            <div className="text-xs uppercase tracking-widest text-muted pt-2">
               Senaste nummer
             </div>
             <div className="font-mono tabular-nums text-3xl">

@@ -205,10 +205,10 @@ export function LoginForm() {
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
-            maxLength={6}
+            maxLength={8}
             required
             autoFocus
-            placeholder="6-siffrig kod"
+            placeholder="Kod från mejlet"
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
             className={`${inputClass} tracking-[0.4em] text-center text-xl`}

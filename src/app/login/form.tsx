@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type Status = "idle" | "loading" | "error" | "reset-sent";
@@ -11,14 +11,6 @@ export function LoginForm() {
   const [mode, setMode] = useState<"password" | "reset">("password");
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState("");
-  const [isStandalone, setIsStandalone] = useState(false);
-
-  useEffect(() => {
-    setIsStandalone(
-      window.matchMedia("(display-mode: standalone)").matches ||
-        (navigator as Navigator & { standalone?: boolean }).standalone === true,
-    );
-  }, []);
 
   async function handleGoogle() {
     setErrorMsg("");
@@ -26,7 +18,9 @@ export function LoginForm() {
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/auth/return`,
+      },
     });
     if (error) {
       setStatus("error");
@@ -86,22 +80,15 @@ export function LoginForm() {
 
   return (
     <div className="space-y-4">
-      {isStandalone ? (
-        <div className="rounded-2xl bg-[var(--card)] border border-[var(--card-border)] px-4 py-3 text-xs text-muted text-center">
-          Google-inloggning fungerar inte i appen — använd lösenord nedan. Vill du använda Google, öppna{" "}
-          <span className="text-white">Safari</span> istället.
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={handleGoogle}
-          disabled={status === "loading"}
-          className={`${primaryBtn} flex items-center justify-center gap-3`}
-        >
-          <GoogleIcon />
-          <span>Logga in med Google</span>
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={handleGoogle}
+        disabled={status === "loading"}
+        className={`${primaryBtn} flex items-center justify-center gap-3`}
+      >
+        <GoogleIcon />
+        <span>Logga in med Google</span>
+      </button>
 
       <div className="flex items-center gap-3">
         <div className="h-px flex-1 bg-[var(--card-border)]" />

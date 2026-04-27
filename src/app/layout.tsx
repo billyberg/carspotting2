@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
-export const preferredRegion = ["arn1", "fra1"];
+export const preferredRegion = ["fra1", "arn1"];
 
 export const metadata: Metadata = {
   title: "Carspotting",

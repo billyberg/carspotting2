@@ -5,9 +5,9 @@ import { ResetPasswordForm } from "./form";
 export default async function ResetPasswordPage() {
   const supabase = await createClient();
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session?.user) redirect("/login");
 
   return (
     <main className="min-h-screen flex items-center justify-center p-6">

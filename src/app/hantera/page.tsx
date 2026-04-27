@@ -9,8 +9,9 @@ import { createFakeProfile, deleteFakeProfile } from "@/app/actions";
 export default async function ManagePage() {
   const supabase = await createClient();
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) redirect("/login");
 
   const { data: ownProfile } = await supabase

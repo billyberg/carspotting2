@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+export const runtime = "edge";
 export const preferredRegion = ["fra1", "arn1"];
 
 export const metadata: Metadata = {

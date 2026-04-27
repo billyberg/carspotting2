@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { formatPlate } from "@/lib/plate";
 import type { Profile } from "@/lib/types";
 import { registerFind, undoLastFind } from "./actions";
@@ -16,11 +16,14 @@ export function FindCard({
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const next = highest + 1;
+  const [optimisticHighest, updateOptimistic] = useOptimistic(highest);
+
+  const next = optimisticHighest + 1;
 
   function onRegister() {
     setError(null);
     startTransition(async () => {
+      updateOptimistic(highest + 1);
       const res = await registerFind(profile.id);
       if (!res.ok) setError(res.error);
     });
@@ -28,8 +31,10 @@ export function FindCard({
 
   function onUndo() {
     setError(null);
-    if (!confirm(`Ångra senaste fyndet (${formatPlate(highest)})?`)) return;
+    if (!confirm(`Ångra senaste fyndet (${formatPlate(optimisticHighest)})?`))
+      return;
     startTransition(async () => {
+      updateOptimistic(Math.max(0, highest - 1));
       const res = await undoLastFind(profile.id);
       if (!res.ok) setError(res.error);
     });
@@ -43,10 +48,10 @@ export function FindCard({
             {isManaged ? `${profile.display_name} — senaste` : "Senaste fynd"}
           </div>
           <div className="font-mono text-5xl sm:text-6xl font-semibold tabular-nums mt-1">
-            {highest > 0 ? formatPlate(highest) : "—"}
+            {optimisticHighest > 0 ? formatPlate(optimisticHighest) : "—"}
           </div>
         </div>
-        {highest > 0 && (
+        {optimisticHighest > 0 && (
           <button
             onClick={onUndo}
             disabled={pending}
@@ -61,7 +66,7 @@ export function FindCard({
         disabled={pending}
         className="w-full rounded-2xl bg-black text-white font-medium px-5 py-5 text-lg disabled:opacity-50 hover:opacity-90 transition-opacity"
       >
-        {pending ? "Registrerar…" : `Registrera ${formatPlate(next)}`}
+        {`Registrera ${formatPlate(next)}`}
       </button>
       {error && <p className="text-sm text-red-600 text-center">{error}</p>}
     </div>

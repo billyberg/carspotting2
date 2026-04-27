@@ -21,12 +21,20 @@ export default async function HomePage() {
     .maybeSingle<Profile>();
   if (!ownProfile) redirect("/onboarding");
 
-  const { data: managed } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("managed_by", ownProfile.id)
-    .order("created_at", { ascending: true })
-    .returns<Profile[]>();
+  const [{ data: managed }, { data: leaderboard }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("*")
+      .eq("managed_by", ownProfile.id)
+      .order("created_at", { ascending: true })
+      .returns<Profile[]>(),
+    supabase
+      .from("leaderboard")
+      .select("*")
+      .order("highest_plate", { ascending: false })
+      .order("display_name", { ascending: true })
+      .returns<LeaderboardRow[]>(),
+  ]);
 
   const myProfiles: Profile[] = [ownProfile, ...(managed ?? [])];
   const profileIds = myProfiles.map((p) => p.id);
@@ -45,13 +53,6 @@ export default async function HomePage() {
     if (f.plate_number > current)
       highestByProfile.set(f.profile_id, f.plate_number);
   }
-
-  const { data: leaderboard } = await supabase
-    .from("leaderboard")
-    .select("*")
-    .order("highest_plate", { ascending: false })
-    .order("display_name", { ascending: true })
-    .returns<LeaderboardRow[]>();
 
   return (
     <main className="min-h-screen flex flex-col p-4 sm:p-6 gap-4 sm:gap-6 max-w-2xl w-full mx-auto">

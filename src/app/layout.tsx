@@ -4,10 +4,24 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Carspotting",
   description: "Hitta registreringsplåtar i följd",
+  appleWebApp: {
+    capable: true,
+    title: "Carspotting",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    apple: "/icon.svg",
+  },
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {
   themeColor: "#000000",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

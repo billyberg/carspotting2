@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { SwInit } from "./sw-init";
 
 export const runtime = "edge";
 export const preferredRegion = ["fra1", "arn1"];
@@ -35,6 +36,7 @@ export default function RootLayout({
   return (
     <html lang="sv" className="h-full antialiased">
       <body className="min-h-full flex flex-col bg-black text-white">
+        <SwInit />
         {children}
       </body>
     </html>

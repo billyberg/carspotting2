@@ -149,7 +149,7 @@ export async function registerFind(
       .maybeSingle(),
     supabase
       .from("profiles")
-      .select("bootstrap_plate")
+      .select("bootstrap_plate, display_name")
       .eq("id", profileId)
       .maybeSingle(),
   ]);
@@ -163,7 +163,69 @@ export async function registerFind(
   });
   if (error) return { ok: false, error: error.message };
 
+  // Fire-and-forget push notifications (non-blocking)
+  const edgeFnUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-push`;
+  const internalSecret = process.env.INTERNAL_SECRET;
+  if (internalSecret) {
+    void fetch(edgeFnUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-internal-secret": internalSecret,
+      },
+      body: JSON.stringify({
+        profileId,
+        newPlate: next,
+        finderName: target?.display_name ?? "Någon",
+      }),
+    }).catch(() => {});
+  }
+
   refresh();
+  return { ok: true };
+}
+
+export async function savePushSubscription(sub: {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+}): Promise<ActionResult> {
+  const { supabase, profile } = await requireOwnProfile();
+  const { error } = await supabase.from("push_subscriptions").upsert(
+    {
+      profile_id: profile.id,
+      endpoint: sub.endpoint,
+      p256dh: sub.p256dh,
+      auth: sub.auth,
+    },
+    { onConflict: "profile_id,endpoint" },
+  );
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+export async function deletePushSubscription(
+  endpoint: string,
+): Promise<ActionResult> {
+  const { supabase, profile } = await requireOwnProfile();
+  const { error } = await supabase
+    .from("push_subscriptions")
+    .delete()
+    .eq("profile_id", profile.id)
+    .eq("endpoint", endpoint);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+export async function updateNotificationPref(
+  pref: "all" | "overtakes" | "none",
+): Promise<ActionResult> {
+  const { supabase, profile } = await requireOwnProfile();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ notification_pref: pref })
+    .eq("id", profile.id);
+  if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
 

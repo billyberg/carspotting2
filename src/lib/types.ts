@@ -7,6 +7,7 @@ export type Profile = {
   avatar_url: string | null;
   bootstrap_plate: number;
   is_admin: boolean;
+  notification_pref: "all" | "overtakes" | "none";
   created_at: string;
 };
 

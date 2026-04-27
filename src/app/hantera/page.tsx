@@ -5,6 +5,7 @@ import type { Profile } from "@/lib/types";
 import { formatPlate } from "@/lib/plate";
 import { AvatarUpload } from "@/app/avatar-upload";
 import { createFakeProfile, deleteFakeProfile } from "@/app/actions";
+import { NotificationSettings } from "./notification-settings";
 
 export default async function ManagePage() {
   const supabase = await createClient();
@@ -107,6 +108,8 @@ export default async function ManagePage() {
           </button>
         </form>
       </section>
+
+      <NotificationSettings initialPref={ownProfile.notification_pref as "all" | "overtakes" | "none"} />
 
       <section className="rounded-3xl bg-[var(--card)] border border-[var(--card-border)] p-5">
         <h2 className="text-sm uppercase tracking-widest text-muted mb-4">

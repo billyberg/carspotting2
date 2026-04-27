@@ -11,22 +11,29 @@ type Pref = "all" | "overtakes" | "none";
 
 const VAPID_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
+/** Convert base64url VAPID key to the Uint8Array browsers require */
+function vapidKeyToUint8Array(base64url: string): Uint8Array<ArrayBuffer> {
+  const padding = "=".repeat((4 - (base64url.length % 4)) % 4);
+  const b64 = (base64url + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(b64);
+  const buf = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i);
+  return buf;
+}
+
 const PREFS = [
   { value: "overtakes" as Pref, label: "Någon går om mig i topplistan" },
   { value: "all" as Pref, label: "Någon hittar ett nytt nummer" },
 ];
 
-export function NotificationSettings({
-  initialPref,
-}: {
-  initialPref: Pref;
-}) {
+export function NotificationSettings({ initialPref }: { initialPref: Pref }) {
   const [supported, setSupported] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [pref, setPref] = useState<Pref>(initialPref);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
   const [permDenied, setPermDenied] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
@@ -39,39 +46,54 @@ export function NotificationSettings({
       setChecking(false);
       return;
     }
-    navigator.serviceWorker.ready.then((reg) => {
-      reg.pushManager.getSubscription().then((sub) => {
+    navigator.serviceWorker.ready
+      .then((reg) => reg.pushManager.getSubscription())
+      .then((sub) => {
         setSubscribed(!!sub);
         setChecking(false);
-      });
-    });
+      })
+      .catch(() => setChecking(false));
   }, []);
 
   async function subscribe() {
     setLoading(true);
+    setErrorMsg(null);
     try {
+      // Ensure SW is registered (may not be if SwInit hadn't fired yet)
+      await navigator.serviceWorker.register("/sw.js");
+
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
-        setPermDenied(true);
+        if (permission === "denied") setPermDenied(true);
         return;
       }
+
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: VAPID_KEY,
+        applicationServerKey: vapidKeyToUint8Array(VAPID_KEY),
       });
+
       const json = sub.toJSON();
-      await savePushSubscription({
-        endpoint: json.endpoint!,
-        p256dh: json.keys!.p256dh,
-        auth: json.keys!.auth,
+      if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
+        throw new Error("Subscription saknar nycklar");
+      }
+
+      const result = await savePushSubscription({
+        endpoint: json.endpoint,
+        p256dh: json.keys.p256dh,
+        auth: json.keys.auth,
       });
+
+      if (!result.ok) throw new Error(result.error);
+
       setSubscribed(true);
-      // Default to overtakes if preference hasn't been set yet
       if (pref === "none") {
         setPref("overtakes");
         await updateNotificationPref("overtakes");
       }
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : "Något gick fel");
     } finally {
       setLoading(false);
     }
@@ -79,6 +101,7 @@ export function NotificationSettings({
 
   async function unsubscribe() {
     setLoading(true);
+    setErrorMsg(null);
     try {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
@@ -87,6 +110,8 @@ export function NotificationSettings({
         await sub.unsubscribe();
       }
       setSubscribed(false);
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : "Något gick fel");
     } finally {
       setLoading(false);
     }
@@ -97,7 +122,6 @@ export function NotificationSettings({
     await updateNotificationPref(newPref);
   }
 
-  // Don't render anything until we've checked SW support
   if (!supported || checking) return null;
 
   return (
@@ -106,8 +130,8 @@ export function NotificationSettings({
 
       {permDenied ? (
         <p className="text-sm text-muted">
-          Du har blockerat notiser i webbläsaren. Tillåt dem i
-          inställningarna för att aktivera.
+          Du har blockerat notiser i webbläsaren. Tillåt dem i inställningarna
+          för att aktivera.
         </p>
       ) : (
         <div className="space-y-3">
@@ -125,6 +149,10 @@ export function NotificationSettings({
               {loading ? "…" : subscribed ? "Avaktivera" : "Aktivera"}
             </button>
           </div>
+
+          {errorMsg && (
+            <p className="text-xs text-red-400 break-all">{errorMsg}</p>
+          )}
 
           {subscribed && (
             <div className="space-y-1.5">

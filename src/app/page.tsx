@@ -37,21 +37,16 @@ export default async function HomePage() {
   ]);
 
   const myProfiles: Profile[] = [ownProfile, ...(managed ?? [])];
-  const profileIds = myProfiles.map((p) => p.id);
 
-  const { data: latestFinds } = await supabase
-    .from("finds")
-    .select("profile_id, plate_number")
-    .in("profile_id", profileIds);
-
+  // Leaderboard already has the highest plate per profile (max of bootstrap and finds)
   const highestByProfile = new Map<string, number>();
   for (const p of myProfiles) {
     highestByProfile.set(p.id, p.bootstrap_plate ?? 0);
   }
-  for (const f of latestFinds ?? []) {
-    const current = highestByProfile.get(f.profile_id) ?? 0;
-    if (f.plate_number > current)
-      highestByProfile.set(f.profile_id, f.plate_number);
+  for (const row of leaderboard ?? []) {
+    if (highestByProfile.has(row.id)) {
+      highestByProfile.set(row.id, row.highest_plate);
+    }
   }
 
   return (

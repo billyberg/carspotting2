@@ -20,30 +20,24 @@ export default async function ManagePage() {
     .maybeSingle<Profile>();
   if (!ownProfile) redirect("/onboarding");
 
-  const { data: fakes } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("managed_by", ownProfile.id)
-    .order("created_at", { ascending: true })
-    .returns<Profile[]>();
-
-  const fakeIds = (fakes ?? []).map((f) => f.id);
-
-  const { data: fakeFinds } = fakeIds.length
-    ? await supabase
-        .from("finds")
-        .select("profile_id, plate_number")
-        .in("profile_id", fakeIds)
-    : { data: [] as { profile_id: string; plate_number: number }[] };
+  const [{ data: fakes }, { data: leaderboard }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("*")
+      .eq("managed_by", ownProfile.id)
+      .order("created_at", { ascending: true })
+      .returns<Profile[]>(),
+    supabase.from("leaderboard").select("id, highest_plate"),
+  ]);
 
   const highestByProfile = new Map<string, number>();
   for (const f of fakes ?? []) {
     highestByProfile.set(f.id, f.bootstrap_plate ?? 0);
   }
-  for (const f of fakeFinds ?? []) {
-    const current = highestByProfile.get(f.profile_id) ?? 0;
-    if (f.plate_number > current)
-      highestByProfile.set(f.profile_id, f.plate_number);
+  for (const row of leaderboard ?? []) {
+    if (highestByProfile.has(row.id)) {
+      highestByProfile.set(row.id, row.highest_plate);
+    }
   }
 
   return (
